@@ -1,10 +1,10 @@
-# Usamos Python 3.12 sobre una base Debian para mayor compatibilidad con MuseScore
+# Use Python 3.12 on a Debian-based slim image
 FROM python:3.12-slim
 
-# Evita que Apt haga preguntas interactivas
+# Prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalar MuseScore, Xvfb (servidor gráfico virtual) y dependencias de audio
+# Install MuseScore, Xvfb (Virtual Display), and audio dependencies
 RUN apt-get update && apt-get install -y \
     musescore \
     xvfb \
@@ -12,22 +12,28 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Establecemos el directorio de trabajo
+# Create the symlink so music21 finds 'mscore3' as expected
+RUN ln -s /usr/bin/mscore /usr/bin/mscore3
+
+# Set the working directory
 WORKDIR /app
 
-# Copiamos solo los requisitos primero para aprovechar la caché de Docker
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 
-# Copiamos el resto del código del proyecto
+# Copy the rest of the project code
 COPY . .
 
-# Exponemos el puerto de Render
+# Pre-configure music21 to point to the correct MuseScore binary
+RUN python -c "from music21 import environment; s = environment.UserSettings(); s['musicxmlPath'] = '/usr/bin/mscore3'; s['musescoreDirectPNGPath'] = '/usr/bin/mscore3'"
+
+# Expose Render's default port
 EXPOSE 10000
 
-# Comando para arrancar la app:
-# 1. 'xvfb-run' crea la pantalla virtual para MuseScore.
-# 2. '--timeout 120' evita que el generador de Jazz se corte por tiempo.
-# 3. '--chdir src' porque tu app.py está dentro de esa carpeta.
-CMD ["xvfb-run", "gunicorn", "--bind", "0.0.0.0:10000", "--chdir", "src", "--timeout", "120", "app:app"]
+# Start command:
+# 1. 'xvfb-run -a' creates a virtual screen for MuseScore to run headless.
+# 2. '--timeout 120' prevents Gunicorn from killing the worker during melody generation.
+# 3. '--chdir src' ensures Gunicorn finds app.py inside the src folder.
+CMD ["xvfb-run", "-a", "gunicorn", "--bind", "0.0.0.0:10000", "--chdir", "src", "--timeout", "120", "app:app"]
