@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic Jazz Melody Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #c9a227;
+            --gold-light: #e6c566;
+            --gold-dark: #9a7b1a;
+            --bg-dark: #0d0d0d;
+            --bg-card: #161616;
+            --bg-elevated: #1f1f1f;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-accent: rgba(201, 162, 39, 0.3);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Decorative background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(201, 162, 39, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(201, 162, 39, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        .header-icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+        
+        h1 .accent {
+            color: var(--gold);
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Search Section */
+        .search-section {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        
+        .search-container {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+        
+        .input-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+        
+        #song-search {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 15px;
+            font-family: inherit;
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        
+        #song-search::placeholder {
+            color: var(--text-muted);
+        }
+        
+        #song-search:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.15);
+        }
+        
+        #song-list {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            max-height: 320px;
+            overflow-y: auto;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        #song-list.show {
+            display: block;
+        }
+        
+        .song-item {
+            padding: 12px 18px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 14px;
+        }
+        
+        .song-item:last-child {
+            border-bottom: none;
+        }
+        
+        .song-item:hover {
+            background: rgba(201, 162, 39, 0.1);
+            color: var(--gold-light);
+        }
+        
+        /* Mode Tabs */
+        .mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .mode-tab {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .mode-tab:hover {
+            border-color: var(--gold);
+            color: var(--text-primary);
+        }
+        
+        .mode-tab.active {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            color: #0d0d0d;
+            border-color: var(--gold);
+        }
+        
+        .mode-content {
+            display: none;
+        }
+        
+        .mode-content.active {
+            display: block;
+        }
+        
+        /* Custom Chords */
+        .custom-chords-section {
+            margin-bottom: 20px;
+        }
+        
+        .custom-name-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-family: inherit;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
+        }
+        
+        .custom-name-input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.15);
+        }
+        
+        .chords-input-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        @media (max-width: 600px) {
+            .chords-input-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .chord-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .chord-input-container .input-label {
+            font-size: 0.7rem;
+        }
+        
+        .chord-selects {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .chord-select {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .chord-select label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .chord-select select {
+            padding: 8px 6px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            text-align: center;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        
+        .chord-select select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.15);
+        }
+        
+        .chord-select select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        
+        .chord-root-select {
+            flex: 0 0 55px;
+        }
+        
+        .chord-quality-select {
+            flex: 1;
+        }
+        
+        .chord-preview {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gold);
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        .param-select {
+            width: 100%;
+            padding: 12px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding-right: 36px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c9a227' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 12px 8px;
+        }
+
+        .param-select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.15);
+        }
+
+        .param-select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        
+        /* Generation Input */
+        .generation-input {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+        }
+        
+        /* Generate Button */
+        #generate-btn {
+            padding: 14px 32px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            color: #0d0d0d;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.02em;
+            margin-top: 24px;
+        }
+
+        /* Toggle Button */
+        .toggle-params-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 20px;
+        }
+
+        .toggle-params-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .toggle-params-btn .chevron {
+            transition: transform 0.3s ease;
+            font-size: 10px;
+        }
+
+        .toggle-params-btn.expanded .chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Collapsible Parameters */
+        .params-wrapper {
+            display: none;
+        }
+
+        .params-wrapper.expanded {
+            display: block;
+        }
+
+        /* Weights Sum Indicator */
+        .weights-sum {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .weights-sum-label {
+            color: var(--text-secondary);
+        }
+
+        .weights-sum-value {
+            font-weight: 600;
+            color: var(--gold);
+        }
+
+        .weights-sum-value.valid {
+            color: #2d8a4e;
+        }
+
+        .weights-sum-note {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        /* Weights */
+        .weights-section {
+            margin-top: 24px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .weights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-top: 12px;
+        }
+
+        .weights-grid .loading-weights,
+        .weights-grid .error {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .weights-grid .error {
+            color: #e74c3c;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .slider-value {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gold);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            border: 1px solid var(--border-subtle);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 10px rgba(201, 162, 39, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 10px rgba(201, 162, 39, 0.4);
+        }
+
+        input[type="range"]:focus {
+            border-color: var(--gold);
+        }
+
+        .params-section {
+            margin-top: 20px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-top: 12px;
+        }
+        
+        #generate-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(201, 162, 39, 0.3);
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+        }
+        
+        #generate-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        #generate-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        /* Status */
+        .status {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 48px 24px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--border-subtle);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        .loading p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Results */
+        .results {
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        /* Score Display */
+        .score-display {
+            text-align: center;
+            padding: 28px;
+            background: linear-gradient(135deg, rgba(201, 162, 39, 0.08) 0%, rgba(201, 162, 39, 0.03) 100%);
+            border-radius: 12px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-accent);
+        }
+        
+        .score-value {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: -0.02em;
+        }
+        
+        .score-label {
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        /* Chords Display */
+        .chords-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 12px;
+            margin-bottom: 36px;
+        }
+        
+        .chord-box {
+            background: var(--bg-elevated);
+            padding: 16px 12px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.2s ease;
+        }
+        
+        .chord-box:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+        }
+        
+        .chord-bar {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        
+        .chord-name {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        
+        /* Player Section */
+        .player-section {
+            padding: 20px 0;
+        }
+        
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .player-btn {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .player-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        #play-btn {
+            background: linear-gradient(135deg, #2d8a4e 0%, #1e6338 100%);
+            color: white;
+        }
+        
+        #play-btn:hover {
+            box-shadow: 0 4px 16px rgba(45, 138, 78, 0.3);
+        }
+        
+        #stop-btn {
+            background: linear-gradient(135deg, #8a2d2d 0%, #631e1e 100%);
+            color: white;
+        }
+        
+        #stop-btn:hover {
+            box-shadow: 0 4px 16px rgba(138, 45, 45, 0.3);
+        }
+        
+        #download-btn {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        #download-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        
+        /* Sheet Music */
+        .sheet-section {
+            margin-top: 36px;
+        }
+        
+        .sheet-music-container {
+            background: #fafafa;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            overflow-x: auto;
+        }
+        
+        .sheet-music-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        
+        .sheet-music-placeholder {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            border: 1px dashed var(--border-subtle);
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px 16px 40px;
+            }
+            
+            h1 {
+                font-size: 1.875rem;
+            }
+            
+            .card {
+                padding: 24px;
+            }
+            
+            .search-section {
+                flex-direction: column;
+            }
+            
+            .search-container {
+                min-width: 100%;
+            }
+            
+            .generation-input {
+                flex-direction: row;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .score-value {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <span class="header-icon">&#9835;</span>
+            <h1>Genetic <span class="accent">Jazz</span> Melody Generator</h1>
+            <p class="subtitle">Select a jazz standard and generate an improvised melody using evolutionary algorithms</p>
+        </header>
+        
+        <div class="card">
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="song">Select Jazz Standard</button>
+                <button class="mode-tab" data-mode="custom">Custom Progression</button>
+            </div>
+            
+            <div class="mode-content active" id="mode-song">
+                <div class="search-section">
+                    <div class="search-container">
+                        <label class="input-label" for="song-search">Song Selection</label>
+                        <input type="text" id="song-search" placeholder="Search for a jazz standard..." autocomplete="off">
+                        <div id="song-list"></div>
+                    </div>
+                    <div class="generation-input slider-container">
+                        <div class="slider-header">
+                            <label class="input-label" for="generations">Generations</label>
+                            <span class="slider-value" id="generations-value">1000</span>
+                        </div>
+                        <input type="range" id="generations" value="1000" min="100" max="2000" step="100">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mode-content" id="mode-custom">
+                <div class="custom-chords-section">
+                    <label class="input-label">Progression Name</label>
+                    <input type="text" class="custom-name-input" id="custom-name" placeholder="My Custom Progression" value="Custom Progression">
+                    
+                    <label class="input-label">Chord Progression (8 bars)</label>
+                    <div class="chords-input-grid" id="chords-input-grid">
+                        <!-- Chord inputs will be generated by JavaScript -->
+                    </div>
+                </div>
+                <div class="search-section">
+                    <div class="generation-input slider-container">
+                        <div class="slider-header">
+                            <label class="input-label" for="generations-custom">Generations</label>
+                            <span class="slider-value" id="generations-custom-value">1000</span>
+                        </div>
+                        <input type="range" id="generations-custom" value="1000" min="100" max="2000" step="100">
+                    </div>
+                </div>
+            </div>
+            <button class="toggle-params-btn" id="toggle-params-btn">
+                <span class="chevron">&#9660;</span>
+                <span id="toggle-params-text">Show Advanced Parameters</span>
+            </button>
+            <div class="params-wrapper" id="params-wrapper">
+            <div class="weights-section">
+                <label class="input-label">Fitness Weights</label>
+                <div class="weights-grid" id="weights-grid">
+                    <!-- Sliders will be generated dynamically from API -->
+                    <div class="loading-weights">Loading fitness parameters...</div>
+                </div>
+                <div class="weights-sum">
+                    <span class="weights-sum-label">Total:</span>
+                    <span class="weights-sum-value" id="weights-sum-value">1.00</span>
+                    <span class="weights-sum-note">(normalized to 1.0 on generate)</span>
+                </div>
+            </div>
+            <div class="params-section">
+                <label class="input-label">Algorithm Parameters</label>
+                <div class="params-grid">
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <label class="input-label" for="param-population">Population Size</label>
+                            <span class="slider-value" id="param-population-value">100</span>
+                        </div>
+                        <input type="range" id="param-population" value="100" min="10" max="500" step="10" data-param-key="population_size">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <label class="input-label" for="param-mutation">Mutation Rate</label>
+                            <span class="slider-value" id="param-mutation-value">0.15</span>
+                        </div>
+                        <input type="range" id="param-mutation" value="0.15" min="0.01" max="0.5" step="0.01" data-param-key="mutation_rate">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <label class="input-label" for="param-elite">Elite Size</label>
+                            <span class="slider-value" id="param-elite-value">5</span>
+                        </div>
+                        <input type="range" id="param-elite" value="5" min="1" max="20" step="1" data-param-key="elite_size">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <label class="input-label" for="param-pairing">Pairing Strategy</label>
+                        </div>
+                        <select id="param-pairing" class="param-select" data-param-key="pairing_strategy">
+                            <option value="random" selected>Random</option>
+                            <option value="similarity">Similarity</option>
+                            <option value="dissimilarity">Dissimilarity</option>
+                            <option value="best_first_last">Best First / Last</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            </div>
+            <button id="generate-btn" disabled>Generate Melody</button>
+        </div>
+        
+        <div class="card">
+            <div class="status" id="status">Select a song to begin</div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Evolving melody through natural selection...</p>
+            </div>
+            
+            <div class="results" id="results">
+                <div class="score-display">
+                    <div class="score-value" id="fitness-score">0.0000</div>
+                    <div class="score-label">Fitness Score</div>
+                </div>
+                
+                <h3 class="section-header">Chord Progression</h3>
+                <div class="chords-display" id="chords-display"></div>
+                
+                <h3 class="section-header">Playback</h3>
+                <div class="player-section">
+                    <div class="player-controls">
+                        <button class="player-btn" id="play-btn">
+                            <span>&#9654;</span> Play
+                        </button>
+                        <button class="player-btn" id="stop-btn">
+                            <span>&#9632;</span> Stop
+                        </button>
+                        <button class="player-btn" id="download-btn">
+                            <span>&#8595;</span> Download MIDI
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="sheet-section">
+                    <h3 class="section-header">Generated Score</h3>
+                    <div id="sheet-music-area">
+                        <div class="sheet-music-placeholder" id="sheet-placeholder">
+                            Sheet music will appear here after generation
+                        </div>
+                        <div class="sheet-music-container" id="sheet-container" style="display: none;">
+                            <img id="sheet-image" src="" alt="Generated Sheet Music">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="footer">
+            Genetic Jazz Melody Generator &mdash; Using evolutionary algorithms to compose jazz improvisations
+        </footer>
+    </div>
+    
+    <!-- MIDI.js for playback -->
+    <script src="https://cdn.jsdelivr.net/npm/midi-player-js@2.0.16/browser/midiplayer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+    
+    <script>
+        let allSongs = [];
+        let selectedSong = null;
+        let currentMidiBase64 = null;
+        let currentMidiFilename = null;
+        let midiPlayer = null;
+        let instrument = null;
+        let audioContext = null;
+        let currentMode = 'song';  // 'song' or 'custom'
+        
+        // Load and generate fitness weight sliders from API
+        async function loadFitnessConfig() {
+            try {
+                const response = await fetch('/api/fitness-config');
+                const data = await response.json();
+                generateWeightSliders(data.weights);
+            } catch (e) {
+                console.error('Failed to load fitness config:', e);
+                document.getElementById('weights-grid').innerHTML = 
+                    '<div class="error">Failed to load fitness parameters</div>';
+            }
+        }
+        
+        function generateWeightSliders(weights) {
+            const grid = document.getElementById('weights-grid');
+            grid.innerHTML = '';
+            
+            weights.forEach(weight => {
+                const container = document.createElement('div');
+                container.className = 'slider-container';
+                
+                const header = document.createElement('div');
+                header.className = 'slider-header';
+                
+                const label = document.createElement('label');
+                label.className = 'input-label';
+                label.setAttribute('for', `weight-${weight.key}`);
+                label.textContent = weight.label;
+                label.title = weight.description || '';
+                
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'slider-value';
+                valueSpan.id = `weight-${weight.key}-value`;
+                valueSpan.textContent = weight.default.toFixed(2);
+                
+                header.appendChild(label);
+                header.appendChild(valueSpan);
+                
+                const input = document.createElement('input');
+                input.type = 'range';
+                input.id = `weight-${weight.key}`;
+                input.min = '0';
+                input.max = '1';
+                input.step = '0.01';
+                input.dataset.weightKey = weight.key;
+                
+                // Add event listeners for the new slider
+                input.addEventListener('input', () => {
+                    valueSpan.textContent = parseFloat(input.value).toFixed(2);
+                    updateWeightsSum();
+                });
+                
+                container.appendChild(header);
+                container.appendChild(input);
+                grid.appendChild(container);
+                
+                // Set value AFTER adding to DOM for reliable behavior
+                input.value = weight.default;
+            });
+            
+            // Update sum after generating sliders
+            updateWeightsSum();
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load fitness config first (generates weight sliders)
+            await loadFitnessConfig();
+            
+            // Load song list
+            const response = await fetch('/api/songs');
+            const data = await response.json();
+            allSongs = data.songs;
+            
+            // Initialize audio
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Load soundfont
+            try {
+                instrument = await Soundfont.instrument(audioContext, 'acoustic_grand_piano');
+            } catch (e) {
+                console.error('Failed to load soundfont:', e);
+            }
+            
+            // Initialize slider value displays (for algorithm params - weights are already set up)
+            initializeSliders();
+            
+            // Initialize mode tabs
+            initializeModeTabs();
+            
+            // Initialize custom chord inputs
+            initializeChordInputs();
+        });
+        
+        // Slider value display functionality
+        function initializeSliders() {
+            const sliders = document.querySelectorAll('input[type="range"]');
+            sliders.forEach(slider => {
+                const valueDisplay = document.getElementById(slider.id + '-value');
+                if (valueDisplay) {
+                    // Set initial value display
+                    updateSliderDisplay(slider, valueDisplay);
+                    
+                    // Update on input
+                    slider.addEventListener('input', () => {
+                        updateSliderDisplay(slider, valueDisplay);
+                        // Update sum display if this is a weight slider
+                        if (slider.dataset.weightKey) {
+                            updateWeightsSum();
+                        }
+                    });
+                }
+            });
+            
+            // Initialize weights sum display
+            updateWeightsSum();
+        }
+        
+        function updateSliderDisplay(slider, valueDisplay) {
+            const value = parseFloat(slider.value);
+            // Format based on step size
+            const step = parseFloat(slider.step);
+            if (step >= 1) {
+                valueDisplay.textContent = Math.round(value);
+            } else {
+                valueDisplay.textContent = value.toFixed(2);
+            }
+        }
+        
+        // Update weights sum display
+        function updateWeightsSum() {
+            let sum = 0;
+            document.querySelectorAll('[data-weight-key]').forEach((input) => {
+                sum += parseFloat(input.value) || 0;
+            });
+            const sumDisplay = document.getElementById('weights-sum-value');
+            if (sumDisplay) {
+                sumDisplay.textContent = sum.toFixed(2);
+                // Show green if sum is 1.00
+                sumDisplay.classList.toggle('valid', Math.abs(sum - 1.0) < 0.01);
+            }
+        }
+        
+        // Normalize weights to sum to exactly 1 when generating and update UI
+        function getNormalizedWeights() {
+            const weights = {};
+            const weightInputs = Array.from(document.querySelectorAll('[data-weight-key]'));
+            let sum = 0;
+            
+            // Calculate current sum
+            weightInputs.forEach((input) => {
+                sum += parseFloat(input.value) || 0;
+            });
+            
+            if (sum === 0) {
+                // If all weights are 0, distribute equally
+                const equalWeight = 1 / weightInputs.length;
+                weightInputs.forEach((input) => {
+                    const key = input.dataset.weightKey;
+                    weights[key] = equalWeight;
+                    input.value = equalWeight;
+                    const valueDisplay = document.getElementById(input.id + '-value');
+                    if (valueDisplay) {
+                        valueDisplay.textContent = equalWeight.toFixed(2);
+                    }
+                });
+            } else {
+                // Normalize and ensure they sum to exactly 1
+                let runningSum = 0;
+                weightInputs.forEach((input, index) => {
+                    const key = input.dataset.weightKey;
+                    const value = parseFloat(input.value) || 0;
+                    let normalizedValue;
+                    
+                    if (index === weightInputs.length - 1) {
+                        // Last weight gets the remainder to ensure exact sum of 1
+                        normalizedValue = Math.round((1 - runningSum) * 100) / 100;
+                    } else {
+                        normalizedValue = Math.round((value / sum) * 100) / 100;
+                        runningSum += normalizedValue;
+                    }
+                    
+                    weights[key] = normalizedValue;
+                    input.value = normalizedValue;
+                    const valueDisplay = document.getElementById(input.id + '-value');
+                    if (valueDisplay) {
+                        valueDisplay.textContent = normalizedValue.toFixed(2);
+                    }
+                });
+            }
+            
+            // Update sum display to show 1.00
+            updateWeightsSum();
+            
+            return weights;
+        }
+        
+        // Toggle parameters visibility
+        const toggleBtn = document.getElementById('toggle-params-btn');
+        const paramsWrapper = document.getElementById('params-wrapper');
+        const toggleText = document.getElementById('toggle-params-text');
+        
+        toggleBtn.addEventListener('click', () => {
+            const isExpanded = paramsWrapper.classList.toggle('expanded');
+            toggleBtn.classList.toggle('expanded', isExpanded);
+            toggleText.textContent = isExpanded ? 'Hide Advanced Parameters' : 'Show Advanced Parameters';
+        });
+        
+        // Mode tabs functionality
+        function initializeModeTabs() {
+            const tabs = document.querySelectorAll('.mode-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const mode = tab.dataset.mode;
+                    currentMode = mode;
+                    
+                    // Update tab styles
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Show/hide content
+                    document.querySelectorAll('.mode-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById('mode-' + mode).classList.add('active');
+                    
+                    // Update status and button state
+                    updateGenerateButtonState();
+                    updateStatusMessage();
+                });
+            });
+        }
+        
+        // Available roots and chord qualities (matching ChordFactory)
+        const AVAILABLE_ROOTS = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
+        const CHORD_QUALITIES = {
+            'maj7': 'maj7',
+            'min7': 'm7',
+            'dom7': '7',
+            'min7b5': 'm7b5',
+            'dim7': 'dim7',
+            'minMaj7': 'mMaj7',
+            'maj7#5': 'maj7#5',
+            '7sus4': '7sus4',
+            'dom7#11': '7#11'
+        };
+        
+        // Default ii-V-I progression in C major / A minor
+        const DEFAULT_CHORDS = [
+            { root: 'D', quality: 'min7' },
+            { root: 'G', quality: 'dom7' },
+            { root: 'C', quality: 'maj7' },
+            { root: 'F', quality: 'maj7' },
+            { root: 'B', quality: 'min7b5' },
+            { root: 'E', quality: 'dom7' },
+            { root: 'A', quality: 'min7' },
+            { root: 'E', quality: 'dom7' }
+        ];
+        
+        // Generate chord select inputs
+        function initializeChordInputs() {
+            const grid = document.getElementById('chords-input-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 8; i++) {
+                const container = document.createElement('div');
+                container.className = 'chord-select';
+                
+                const label = document.createElement('label');
+                label.textContent = `Bar ${i + 1}`;
+                
+                const selectsDiv = document.createElement('div');
+                selectsDiv.className = 'chord-selects';
+                
+                // Root select
+                const rootSelect = document.createElement('select');
+                rootSelect.className = 'chord-root-select';
+                rootSelect.dataset.index = i;
+                AVAILABLE_ROOTS.forEach(root => {
+                    const option = document.createElement('option');
+                    option.value = root;
+                    option.textContent = root;
+                    rootSelect.appendChild(option);
+                });
+                
+                // Quality select
+                const qualitySelect = document.createElement('select');
+                qualitySelect.className = 'chord-quality-select';
+                qualitySelect.dataset.index = i;
+                Object.entries(CHORD_QUALITIES).forEach(([value, display]) => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = display;
+                    qualitySelect.appendChild(option);
+                });
+                
+                // Preview span
+                const preview = document.createElement('span');
+                preview.className = 'chord-preview';
+                preview.dataset.index = i;
+                
+                selectsDiv.appendChild(rootSelect);
+                selectsDiv.appendChild(qualitySelect);
+                
+                container.appendChild(label);
+                container.appendChild(selectsDiv);
+                container.appendChild(preview);
+                
+                grid.appendChild(container);
+                
+                // Set defaults
+                rootSelect.value = DEFAULT_CHORDS[i].root;
+                qualitySelect.value = DEFAULT_CHORDS[i].quality;
+                
+                // Add change listeners
+                rootSelect.addEventListener('change', () => updateChordPreview(i));
+                qualitySelect.addEventListener('change', () => updateChordPreview(i));
+                
+                // Initial preview
+                updateChordPreview(i);
+            }
+            
+            updateGenerateButtonState();
+            updateStatusMessage();
+        }
+        
+        function updateChordPreview(index) {
+            const rootSelect = document.querySelector(`.chord-root-select[data-index="${index}"]`);
+            const qualitySelect = document.querySelector(`.chord-quality-select[data-index="${index}"]`);
+            const preview = document.querySelector(`.chord-preview[data-index="${index}"]`);
+            
+            if (rootSelect && qualitySelect && preview) {
+                const root = rootSelect.value;
+                const qualityDisplay = CHORD_QUALITIES[qualitySelect.value];
+                preview.textContent = root + qualityDisplay;
+            }
+            
+            updateStatusMessage();
+        }
+        
+        function getCustomChords() {
+            const chords = [];
+            for (let i = 0; i < 8; i++) {
+                const rootSelect = document.querySelector(`.chord-root-select[data-index="${i}"]`);
+                const qualitySelect = document.querySelector(`.chord-quality-select[data-index="${i}"]`);
+                
+                if (!rootSelect || !qualitySelect) return null;
+                
+                chords.push({
+                    root: rootSelect.value,
+                    quality: qualitySelect.value
+                });
+            }
+            return chords;
+        }
+        
+        function updateGenerateButtonState() {
+            if (currentMode === 'song') {
+                generateBtn.disabled = !selectedSong;
+            } else {
+                // With select dropdowns, chords are always valid
+                generateBtn.disabled = false;
+            }
+        }
+        
+        function updateStatusMessage() {
+            const status = document.getElementById('status');
+            if (currentMode === 'song') {
+                status.textContent = selectedSong ? `Selected: ${selectedSong}` : 'Select a song to begin';
+            } else {
+                const chords = getCustomChords();
+                const name = document.getElementById('custom-name').value || 'Custom Progression';
+                // Build chord progression string for display
+                const chordStr = chords ? chords.map(c => c.root + CHORD_QUALITIES[c.quality]).join(' - ') : '';
+                status.textContent = `Ready: ${name}`;
+            }
+        }
+        
+        // Search functionality
+        const searchInput = document.getElementById('song-search');
+        const songList = document.getElementById('song-list');
+        const generateBtn = document.getElementById('generate-btn');
+        
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase();
+            const filtered = allSongs.filter(s => s.toLowerCase().includes(query));
+            
+            songList.innerHTML = filtered.slice(0, 50).map(s => 
+                `<div class="song-item" data-song="${s}">${s}</div>`
+            ).join('');
+            
+            songList.classList.toggle('show', filtered.length > 0 && query.length > 0);
+        });
+        
+        searchInput.addEventListener('focus', () => {
+            if (searchInput.value.length > 0) {
+                songList.classList.add('show');
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                songList.classList.remove('show');
+            }
+        });
+        
+        songList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('song-item')) {
+                selectedSong = e.target.dataset.song;
+                searchInput.value = selectedSong;
+                songList.classList.remove('show');
+                updateGenerateButtonState();
+                updateStatusMessage();
+            }
+        });
+        
+        // Generate melody
+        generateBtn.addEventListener('click', async () => {
+            let requestBody;
+            let generations;
+            
+            if (currentMode === 'song') {
+                if (!selectedSong) return;
+                generations = parseInt(document.getElementById('generations').value);
+                requestBody = { 
+                    mode: 'song',
+                    song: selectedSong, 
+                    generations 
+                };
+            } else {
+                const customChords = getCustomChords();
+                if (!customChords) return;
+                generations = parseInt(document.getElementById('generations-custom').value);
+                const progressionName = document.getElementById('custom-name').value || 'Custom Progression';
+                requestBody = {
+                    mode: 'custom',
+                    progression_name: progressionName,
+                    chords: customChords,
+                    generations
+                };
+            }
+            
+            // Get normalized weights (sum to 1)
+            const weights = getNormalizedWeights();
+            const params = {};
+            document.querySelectorAll('[data-param-key]').forEach((input) => {
+                const key = input.dataset.paramKey;
+                if (input.tagName === 'SELECT') {
+                    params[key] = input.value;
+                    return;
+                }
+                const value = parseFloat(input.value);
+                if (!Number.isNaN(value)) {
+                    params[key] = value;
+                }
+            });
+            
+            requestBody.weights = weights;
+            requestBody.params = params;
+            
+            document.getElementById('status').style.display = 'none';
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('results').classList.remove('show');
+            generateBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Store MIDI data
+                currentMidiBase64 = data.midi_base64;
+                currentMidiFilename = data.midi_filename;
+                
+                // Display results
+                document.getElementById('fitness-score').textContent = data.fitness_score.toFixed(4);
+                
+                // Display chords
+                const chordsHtml = data.chords.map((chord, i) => `
+                    <div class="chord-box">
+                        <div class="chord-bar">Bar ${i + 1}</div>
+                        <div class="chord-name">${chord}</div>
+                    </div>
+                `).join('');
+                document.getElementById('chords-display').innerHTML = chordsHtml;
+                
+                // Display sheet music
+                if (data.sheet_base64) {
+                    document.getElementById('sheet-placeholder').style.display = 'none';
+                    document.getElementById('sheet-container').style.display = 'block';
+                    document.getElementById('sheet-image').src = 'data:image/png;base64,' + data.sheet_base64;
+                } else {
+                    document.getElementById('sheet-placeholder').style.display = 'block';
+                    document.getElementById('sheet-placeholder').textContent = 
+                        'Sheet music generation requires MuseScore to be installed on the server.';
+                    document.getElementById('sheet-container').style.display = 'none';
+                }
+                
+                document.getElementById('results').classList.add('show');
+                
+                // Setup MIDI player
+                setupMidiPlayer(currentMidiBase64);
+                
+            } catch (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+                document.getElementById('status').style.display = 'block';
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                generateBtn.disabled = false;
+            }
+        });
+        
+        // MIDI Player setup
+        function setupMidiPlayer(base64Data) {
+            if (midiPlayer) {
+                midiPlayer.stop();
+            }
+            
+            midiPlayer = new MidiPlayer.Player(event => {
+                if (event.name === 'Note on' && event.velocity > 0 && instrument) {
+                    instrument.play(event.noteNumber, audioContext.currentTime, {
+                        gain: event.velocity / 127,
+                        duration: 0.5
+                    });
+                }
+            });
+            
+            // Convert base64 to array buffer
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            midiPlayer.loadArrayBuffer(bytes.buffer);
+        }
+        
+        // Player controls
+        document.getElementById('play-btn').addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            if (midiPlayer) {
+                midiPlayer.play();
+            }
+        });
+        
+        document.getElementById('stop-btn').addEventListener('click', () => {
+            if (midiPlayer) {
+                midiPlayer.stop();
+            }
+        });
+        
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (currentMidiBase64 && currentMidiFilename) {
+                const link = document.createElement('a');
+                link.href = 'data:audio/midi;base64,' + currentMidiBase64;
+                link.download = currentMidiFilename;
+                link.click();
+            }
+        });
+    </script>
+</body>
+</html>
