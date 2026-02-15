@@ -36,4 +36,4 @@ EXPOSE 10000
 # 1. 'xvfb-run -a' creates a virtual screen for MuseScore to run headless.
 # 2. '--timeout 120' prevents Gunicorn from killing the worker during melody generation.
 # 3. '--chdir src' ensures Gunicorn finds app.py inside the src folder.
-CMD ["xvfb-run", "-a", "gunicorn", "--bind", "0.0.0.0:10000", "--chdir", "src", "--timeout", "120", "app:app"]
+CMD xvfb-run -a gunicorn --bind 0.0.0.0:$PORT --chdir src --timeout 120 app:app
