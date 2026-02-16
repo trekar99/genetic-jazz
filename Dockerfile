@@ -1,39 +1,46 @@
-# Use Python 3.12 on a Debian-based slim image
-FROM python:3.12-slim
+# 1. Usamos Python 3.10
+FROM python:3.10-slim
 
-# Prevent interactive prompts during installation
-ENV DEBIAN_FRONTEND=noninteractive
+# 2. Variables de entorno para Python
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Install MuseScore, Xvfb (Virtual Display), and audio dependencies
+# 3. Instalamos dependencias del sistema CRÍTICAS
+# - lilypond: Necesario para que music21 genere los PNG de las partituras
+# - build-essential: Para compilar numpy/pandas si hace falta
 RUN apt-get update && apt-get install -y \
-    musescore \
-    xvfb \
-    libpulse0 \
-    libasound2 \
+    lilypond \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Create the symlink so music21 finds 'mscore3' as expected
-RUN ln -s /usr/bin/mscore /usr/bin/mscore3
-
-# Set the working directory
+# 4. Directorio de trabajo
 WORKDIR /app
 
-# Install Python dependencies
+# 5. Copiamos requirements.txt e instalamos dependencias
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install gunicorn
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the project code
+# 6. Copiamos TODO el código
 COPY . .
 
-# Pre-configure music21 to point to the correct MuseScore binary
-RUN python -c "from music21 import environment; s = environment.UserSettings(); s['musicxmlPath'] = '/usr/bin/mscore3'; s['musescoreDirectPNGPath'] = '/usr/bin/mscore3'"
+# 7. IMPORTANTE: Crear carpeta output y dar permisos
+# Hugging Face corre con el usuario 1000. Si no hacemos esto, 
+# la app fallará al intentar guardar "generated_...mid"
+RUN mkdir -p output && \
+    chmod 777 output
 
-# Expose Render's default port
-EXPOSE 10000
+# 8. Creamos el usuario no-root (Seguridad de Hugging Face)
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
 
-# Start command:
-# 1. 'xvfb-run -a' creates a virtual screen for MuseScore to run headless.
-# 2. '--timeout 120' prevents Gunicorn from killing the worker during melody generation.
-# 3. '--chdir src' ensures Gunicorn finds app.py inside the src folder.
-CMD xvfb-run -a gunicorn --bind 0.0.0.0:$PORT --chdir src --timeout 120 app:app
+# 9. Puerto obligatorio de Hugging Face
+EXPOSE 7860
+
+# 10. Comando de arranque
+# Usamos gunicorn pero SIN eventlet (porque ya no usas sockets).
+# 'app:app' asume que tu archivo se llama 'app.py' y la variable Flask es 'app'.
+# Si tu archivo se llama 'main.py', cambia a 'main:app'.
+CMD ["gunicorn", "-w", "2", "--bind", "0.0.0.0:7860", "app:app"]
